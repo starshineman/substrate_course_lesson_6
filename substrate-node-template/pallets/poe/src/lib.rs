@@ -26,6 +26,9 @@ pub trait Trait: system::Trait {
 
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+
+	//限制存证 hash 的最大长度
+	type MaxClaimHashLength: Get<u32>;
 }
 
 // This pallet's storage items.
@@ -52,7 +55,8 @@ decl_error! {
 		 ProofAlreadyExist,
 		 ClaimNotExist,
 		 NotClaimOwner,
-		 SendEquToTrans
+		 SendEquToTrans,
+		 ProofTooLong
 	}
 }
 
@@ -74,6 +78,10 @@ decl_module! {
 			let sender = ensure_signed(origin)?;
 
 			ensure!(!Proofs::<T>::contains_key(&claim), Error::<T>::ProofAlreadyExist);
+
+
+			//限制存证hash的最大长度，超过指定长度后报错
+			ensure!(T::MaxClaimHashLength::get() >= claim.len() as u32, Error::<T>::ProofTooLong);
 
 			Proofs::<T>::insert(&claim, (sender.clone(), system::Module::<T>::block_number()));
 
